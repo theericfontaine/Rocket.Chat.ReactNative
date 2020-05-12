@@ -208,17 +208,21 @@ class RoomsListView extends React.Component {
 			EventEmitter.addEventListener(KEY_COMMAND, this.handleCommands);
 		}
 		Dimensions.addEventListener('change', this.onDimensionsChange);
-		Orientation.unlockAllOrientations();
 		this.willFocusListener = navigation.addListener('willFocus', () => {
 			// Check if there were changes while not focused (it's set on sCU)
 			if (this.shouldUpdate) {
-				// animateNextTransition();
 				this.forceUpdate();
 				this.shouldUpdate = false;
 			}
 		});
 		this.didFocusListener = navigation.addListener('didFocus', () => {
+			Orientation.unlockAllOrientations();
 			this.animated = true;
+			// Check if there were changes while not focused (it's set on sCU)
+			if (this.shouldUpdate) {
+				this.forceUpdate();
+				this.shouldUpdate = false;
+			}
 			this.backHandler = BackHandler.addEventListener('hardwareBackPress', this.handleBackPress);
 		});
 		this.willBlurListener = navigation.addListener('willBlur', () => {
@@ -231,7 +235,7 @@ class RoomsListView extends React.Component {
 		console.timeEnd(`${ this.constructor.name } mount`);
 	}
 
-	componentWillReceiveProps(nextProps) {
+	UNSAFE_componentWillReceiveProps(nextProps) {
 		const { loadingServer, searchText, server } = this.props;
 
 		if (nextProps.server && loadingServer !== nextProps.loadingServer) {
@@ -417,7 +421,8 @@ class RoomsListView extends React.Component {
 				type: item.t,
 				prid: item.prid,
 				uids: item.uids,
-				usernames: item.usernames
+				usernames: item.usernames,
+				visitor: item.visitor
 			}));
 
 			// unread
@@ -544,11 +549,16 @@ class RoomsListView extends React.Component {
 			prid: item.prid,
 			room: item,
 			search: item.search,
+			visitor: item.visitor,
 			roomUserId: this.getUidDirectMessage(item)
 		});
 	}
 
 	_onPressItem = async(item = {}) => {
+		const { navigation } = this.props;
+		if (!navigation.isFocused()) {
+			return;
+		}
 		if (!item.search) {
 			return this.goRoom(item);
 		}
@@ -808,6 +818,7 @@ class RoomsListView extends React.Component {
 				useRealName={useRealName}
 				getUserPresence={this.getUserPresence}
 				isGroupChat={isGroupChat}
+				visitor={item.visitor}
 			/>
 		);
 	};
